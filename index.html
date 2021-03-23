@@ -393,13 +393,13 @@
             var rec = header.getBoundingClientRect()
             var rect = el.getBoundingClientRect()
             header.insertAdjacentHTML('afterend', `<div nav style="left:${rect.left}px;top:${rec.height}px;">
-                ${(() => {
+                        ${(() => {
                     var s = ''; for (i of el.items ?? []) s += i.type === 'line' ? '<hr>' : `<div onclick="$('[ext]')?.remove();${(i.retrieve ? 'OpenRetrieve(this);' : '') + i.callback}" ${i.retrieve ? `onmouseenter="this.on = true; setTimeout(()=>{if (this.on)OpenRetrieve(this)},500)" onmouseleave="this.on = false;"` : ''}>
-                    <span>${i.name}</span>
-                    ${i.retrieve ? `<span openExt="${i.retrieve}">></span>` : ''}
-                </div>`; return s
+                            <span>${i.name}</span>
+                            ${i.retrieve ? `<span openExt="${i.retrieve}">></span>` : ''}
+                        </div>`; return s
                 })()}
-            </div>`)
+                    </div>`)
         };
         OpenRetrieve = el => {
             if ($('[nav]')) {
@@ -407,8 +407,8 @@
                 var rect = el.getBoundingClientRect();
                 retrieved = el.children[1].getAttribute('openExt').split(',');
                 $('[nav]').insertAdjacentHTML('afterend', `<div ext style="left:${rect.left + rect.width}px;top:${rect.top}px;">
-                    ${(() => { var s = ''; for (i of retrieved) s += `<div onclick="openProject(retrieve('${i.replaceAll("'", "’")}'))">${i}</div>`; return s })()}
-                </div>`);
+                            ${(() => { var s = ''; for (i of retrieved) s += `<div onclick="openProject(retrieve('${i.replaceAll("'", "’")}'))">${i}</div>`; return s })()}
+                        </div>`);
             }
         };
         openProject = proj => {
@@ -502,21 +502,25 @@
             project.video.currentHeight = project.video.height * coef;
             project.video.currentWidth = project.video.width * coef
             content.insertAdjacentHTML('beforeend', `<div class="window"><div>
-                <div position> x: <span MpX></span><br>y: <span MpY></span></div>
-                <svg framesEdit>
-                    <image href="${frames[0]}"/>
-                        <g origin>
-                            <line x1=0 x2=${project.video.currentWidth} hor></line>
-                            <line y1=0 y2=${project.video.currentHeight} ver></line>
-                        </g>
-                        <g sample></g></svg>
-                </div>
-                <div frametools>
-                    <div button>Origin</div>
-                    <div button>Sample</div>
-                </div><div enableMove></div><div remover></div></div>`)
+                        <div position> x: <span MpX></span><br>y: <span MpY></span></div>
+                        <svg framesEdit>
+                            <image href="${frames[0]}"/>
+                                <g origin>
+                                    <line x1=0 x2=${project.video.currentWidth} hor></line>
+                                    <line y1=0 y2=${project.video.currentHeight} ver></line>
+                                </g>
+                                <g sample></g></svg>
+                                <g changeframes></g></svg>
+                                <g placemarker></g></svg>
+                        </div>
+                        <div frametools>
+                            <div button>Origin</div>
+                            <div button>Sample</div>
+                            <div button>Change frames</div>
+                            <div button>Place marker</div>
+                        </div><div enableMove></div><div remover></div></div>`)
             var window = $('.window'), edit = $('[framesEdit]'), tools = $('[frametools]'), move = $('[enableMove]'), remove = $('[remover]'),
-                mpx = $('[MpX]'), mpy = $('[MpY]'), origin = $('g[origin]'), sample = $('g[sample]');
+                mpx = $('[MpX]'), mpy = $('[MpY]'), origin = $('g[origin]'), sample = $('g[sample]'), changeframes = $('g[changeframes]'), placemarker = $('g[placemarker]');
             var graph = { origin: { x: 0, y: 0 } }
             edit.image = edit.children[0];
             edit.image.get = { get rect() { return edit.image.getBoundingClientRect() } }
@@ -531,7 +535,9 @@
             var children = tools.children,
                 buttons = {
                     origin: children[0],
-                    sample: children[1]
+                    sample: children[1],
+                    changeframes: children[2],
+                    placemarker: children[3]
                 };
             origin.vertical = $('[ver]'); origin.horizontal = $('[hor]');
             origin.goTo = (x, y) => {
@@ -545,6 +551,7 @@
                 console.log(buttons.origin.focused)
                 if (buttons.origin.focused) buttons.origin.toggleAttribute('focused')
             }
+
             edit.onmousemove = ({ x, y }) => {
                 var rect = edit.image.get.rect;
                 mpx.innerHTML = Math.round(x - rect.left - project.video.currentWidth / 2) + 'px';
@@ -552,6 +559,7 @@
                 if (buttons.origin.focused) {
                     origin.goTo(x - rect.left, y - rect.top)
                 }
+
             }
             edit.onclick = ({ x, y }) => {
                 buttons.origin.focused = false;
@@ -586,7 +594,7 @@
         changeNumberOfFrames = async () => {
             frameN = Number(await prompt('set frameN to integer:', 'integer'))
         }
-        // (async () => changeProjectName(await prompt('set File Name:', 'name')))()
+                // (async () => changeProjectName(await prompt('set File Name:', 'name')))()
     </script>
 </body>
 
