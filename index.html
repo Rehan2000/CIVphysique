@@ -264,6 +264,26 @@
         g[origin] {
             stroke: red;
         }
+        
+        [identifier] {
+            position: absolute;
+            width: 100%;
+            height: min-content;
+            bottom: 0;
+            left: 0;
+            text-align: right;
+            background: #ddd;
+            font: 400 8px Arial;
+        }
+        [content]>*{
+            height:100%;
+        }
+        [inputs]{
+            min-width: 25vw;
+        }
+        [graphing]{
+            width: 100%;
+        }
     </style>
     <script>
         onload = onresize = () => {
@@ -279,7 +299,21 @@
         <button measure onclick="press(this)">Measure</button>
     </header>
     <div content>
+        <div inputs>
+
+        </div>
+        <div graphing>
+            <div templates>
+
+            </div>
+            <div graph>
+                <svg>
+
+                </svg>
+            </div>
+        </div>
     </div>
+    <div identifier>Projet réalisé par Rehan Ahmed et Joachim Laplanche</div>
     <script>
         /*
         TODO:
