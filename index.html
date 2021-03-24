@@ -2,9 +2,11 @@
 <html>
 
 <head>
+    <meta charset="utf-8">
     <style>
         :root {
             --header-height: 0px;
+            --graph-height: 100%;
         }
 
         html,
@@ -13,6 +15,10 @@
             width: 100%;
             margin: 0;
             overflow: hidden;
+        }
+
+        * {
+            user-select: none;
         }
 
         header {
@@ -32,14 +38,17 @@
         }
 
         [nav],
-        [ext] {
+        [ext],
+        [choice] {
             position: absolute;
             background: #252526;
             padding: 3px 0;
+            z-index: 9;
         }
 
         [nav]>div,
-        [ext]>div {
+        [ext]>div,
+        [choice]>div {
             cursor: default;
             color: #fff;
             font: 400 13.3333px Arial;
@@ -47,8 +56,13 @@
         }
 
         [nav]>div:hover,
-        [ext]>div:hover {
+        [ext]>div:hover,
+        [choice]>div:hover {
             background: #094771;
+        }
+
+        [choice]>div{
+            font-size: 50% !important;
         }
 
         [nav]>hr {
@@ -69,14 +83,6 @@
             width: 100%;
             background: #1e1e1e;
             display: flex;
-        }
-
-        /* img{
-            height: 100px;
-        } */
-        video {
-            /* display: none; */
-            height: 100px;
         }
 
         [uploading],
@@ -229,13 +235,6 @@
             cursor: all-scroll;
         }
 
-        [frametools],
-        header,
-        [nav],
-        [ext] {
-            user-select: none;
-        }
-
         .window {
             transform-origin: 0 0;
             animation: zoomin .2s forwards;
@@ -264,7 +263,7 @@
         g[origin] {
             stroke: red;
         }
-        
+
         [identifier] {
             position: absolute;
             width: 100%;
@@ -273,12 +272,142 @@
             left: 0;
             text-align: right;
             background: #ddd;
-            font: 400 8px Arial;
+            font: 400 11.5px Arial;
+        }
+
+        [content]>*:not(.window) {
+            height: 100%;
+        }
+
+        [inputs] {
+            min-width: 25vw;
+            background: #2d2d2d;
+            color: #eee;
+            font: 400 11.5px Arial;
+        }
+
+        [graphing] {
+            width: 100%;
+            padding: 0px;
+        }
+
+        /* [templates] { } */
+
+        [templates]>button {
+            color: #eee;
+            background: #000;
+            border: 1px solid #eee;
+            border-top-left-radius: 5px;
+            border-top-right-radius: 5px;
+            outline: none !important;
+        }
+
+        [templates]>button[on] {
+            background: #1e1e1e;
+            border-bottom: none;
+        }
+
+        [templates]>button[on]>div {
+            position: relative;
+            left: -6px;
+            bottom: -2px;
+            background: #1e1e1e;
+            width: calc(100% + 12px);
+            height: 3px;
+        }
+
+        [graph]>svg {
+            height: var(--graph-height);
+            width: 100%;
+            border-top: 1px solid #fff;
+        }
+
+        g[G1] {
+            stroke: #ddd;
+            stroke-width: .1;
+        }
+
+        g[G1]>[middle] {
+            stroke-width: .5;
+        }
+
+        [inputs]>div>[tag]::after {
+            content: '>';
+            font-family: monospace;
+        }
+
+        [inputs]>div>[all] {
+            padding: 0 0 0 25px;
+        }
+
+        [orderings] {
+            height: 50%;
+            overflow: auto;
+        }
+
+        [series] {
+            height: 50%;
+        }
+
+        [orderings]>[all]>div {
+            padding: 5px 10px;
+            width: max-content;
+            max-width: calc(100% - 30px);
+            border-radius: 12px;
+            border: 1px solid #eee;
+            font-size: 50%;
+        }
+
+        [orderings]>[all]>div div {
+            display: inline-block;
+            border-radius: 12px;
+            background: #eee;
+            color: #666;
+        }
+
+        [orderings]>[all]>div div:not([full]) {
+            padding: 1px 5px;
+        }
+
+        [orderings]>[all]>div div[t]::before {
+            content: attr(t);
+        }
+
+        [chooser]::after {
+            content: ' ˅';
+            color: #2d2d2d;
+        }
+
+        [newordering] {
+            color: #ccc;
+            background: #1e1e1e;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+
+        [newordering]:hover {
+            box-shadow: 0 0 3px #ccc;
         }
     </style>
     <script>
         onload = onresize = () => {
-            document.documentElement.style.setProperty('--header-height', (header ?? document.querySelector('header')).getBoundingClientRect().height + 'px')
+            document.documentElement.style.setProperty('--header-height', (header ?? $('header')).getBoundingClientRect().height + 'px');
+            var tRect = $('[templates]').getBoundingClientRect(), idRect = $('[identifier]').getBoundingClientRect();
+            document.documentElement.style.setProperty('--graph-height', window.innerHeight - tRect.top - tRect.height - idRect.height - 0 + 'px');
+            (setupGraph = () => {
+                var rect = graphSVG.getBoundingClientRect(), value = 10;
+                g.innerHTML = '';
+                var x = rect.width / 2;
+                while (x <= rect.width) { g.insertAdjacentHTML('beforeend', `<line x1=${x} x2=${x} y1=0 y2=${rect.height} />`); x += value; }
+                var x = rect.width / 2;
+                while (x > 10) { x -= value; g.insertAdjacentHTML('beforeend', `<line x1=${x} x2=${x} y1=0 y2=${rect.height} />`); }
+                var y = rect.height / 2;
+                while (y <= rect.height) { g.insertAdjacentHTML('beforeend', `<line x1=0 x2=${rect.width} y1=${y} y2=${y} />`); y += value; }
+                var y = rect.height / 2;
+                while (y > 10) { y -= value; g.insertAdjacentHTML('beforeend', `<line x1=0 x2=${rect.width} y1=${y} y2=${y} />`); }
+                g.insertAdjacentHTML('beforeend', `<line x1=${rect.width / 2} x2=${rect.width / 2} y1=0 y2=${rect.height} middle />`)
+                g.insertAdjacentHTML('beforeend', `<line x1=0 x2=${rect.width} y1=${rect.height / 2} y2=${rect.height / 2} middle />`)
+            })()
         }
     </script>
 </head>
@@ -290,8 +419,33 @@
         <button measure onclick="press(this)">Measure</button>
     </header>
     <div content>
+        <div inputs>
+            <div orderings>
+                <div tag>orderings&nbsp;</div>
+                <div all>
+                    <div newordering> + new</div>
+                </div>
+            </div>
+            <div series>
+                <div tag>series&nbsp;</div>
+            </div>
+            <div all>
+
+            </div>
+        </div>
+        <div graphing>
+            <div templates>
+                <button on>nouveauGraph*<div></div></button>
+            </div>
+            <div graph>
+                <svg>
+                    <g G1></g>
+                </svg>
+                <div toolbar></div>
+            </div>
+        </div>
     </div>
-    <div identifier> Projet réalisé par Rehan Ahmed et Joachim Laplanche</div>
+    <div identifier>Projet réalisé par Rehan Ahmed et Joachim Laplanche</div>
     <script>
         /*
         TODO:
@@ -329,7 +483,6 @@
                 input.accept = 'video/*';
                 input.onchange = () => {
                     var file = input.files[0], n = file.name.split('.'), name = (() => { var s = ''; for (let i of n) s += n.indexOf(i) == n.length - 1 ? '' : (i + (n.indexOf(i) == 0 ? '' : '.')); return s })();
-                    // (name = file.name.split('.')).pop();
                     console.log(name)
                     console.log(project.name, project.name.includes('nouveauProjet'))
                     if (project.name.includes('nouveauProjet')) changeProjectName(name);
@@ -375,6 +528,16 @@
                     src: '',
                     height: 0,
                     width: 0,
+                },
+                series: {},
+                graphData: {
+                    origin: { x: 0, y: 0 },
+                    sample: [[10, 'px'], 10]
+                },
+                graphs: {
+                    'nouveauGraph*': {
+                        abscisses: [], ordonnées: []
+                    }
                 }
             },
             retrieve = s => {
@@ -435,6 +598,7 @@
         content.onclick = () => {
             $('[nav]')?.remove();
             $('[ext]')?.remove();
+            $('[choice]')?.remove();
         };
         var canvas = document.createElement('canvas'), ctx = canvas.getContext('2d');
         getFrames = videoEl => {
@@ -447,6 +611,8 @@
                 project.frames = frames;
                 openFramesWindow();
                 mover.kill();
+                $('[nav]')?.remove()
+                $('[ext]')?.remove()
             }
             var f = 0;
             videoEl.onseeked = () => {
@@ -530,6 +696,7 @@
                             <div button>Sample</div>
                             <div button>Change frames</div>
                             <div button>Place marker</div>
+                            <div button>New Serie</div>
                         </div><div enableMove></div><div remover></div></div>`)
             var window = $('.window'), edit = $('[framesEdit]'), tools = $('[frametools]'), move = $('[enableMove]'), remove = $('[remover]'),
                 mpx = $('[MpX]'), mpy = $('[MpY]'), origin = $('g[origin]'), sample = $('g[sample]'), changeframes = $('g[changeframes]'), placemarker = $('g[placemarker]');
@@ -579,13 +746,14 @@
                 graph.origin = { x: x, y: y }
             }
             move.onmousedown = e => {
+                preventMouseEnter = true;
                 var x = e.x, y = e.y,
                     pos = move.getBoundingClientRect();
                 document.onmousemove = e => {
                     window.style.left = pos.left + e.x - x + 'px';
                     window.style.top = pos.top + e.y - y + 'px';
                 }
-                document.onmouseup = () => { document.onmousemove = () => { } }
+                document.onmouseup = () => { document.onmousemove = () => { }; preventMouseEnter = false; }
             }
             remove.onclick = () => { window.remove() }
             return edit;
@@ -606,7 +774,79 @@
         changeNumberOfFrames = async () => {
             frameN = Number(await prompt('set frameN to integer:', 'integer'))
         }
-                // (async () => changeProjectName(await prompt('set File Name:', 'name')))()
+        convert = (arr, str) => {
+            if (arr[1] === str) return arr[0];
+            if (arr[2] === project.graphData.sample[0][1] && str === 'px') return arr[0] / project.graphData.sample[0][0] * project.graphData.sample[1];
+            return
+        }
+        const graph = $('[graph]'), graphSVG = graph.children[0], g = $('[G1]');
+        graphSpacing = [10, 'px'];
+        graph.translation = { x: 0, y: 0 };
+        graph.onmousedown = () => {
+            if (!preventMouseEnter) {
+                document.onmousemove = ({ movementX, movementY }) => {
+
+                    transform(g, 'translate', `${graph.translation.x += movementX * 573 / 854.5}px, ${graph.translation.y += movementY * 573 / 854.5}px`);
+                }
+                document.onmouseup = () => { document.onmousemove = () => { } }
+            }
+        }
+        graph.scale = 1;
+        graph.onmouseenter = () => {
+            onwheel = e => {
+                console.log(e);
+                ([...graphSVG.children]).forEach(c => {
+                    c.style.transformOrigin = `${e.offsetX}px ${e.offsetY}px`;
+                    console.log(c, e)
+                    console.log(graph.scale, (1 + e.deltaY / 1000))
+                    transform(c, 'scale', graph.scale *= (1 - e.deltaY / 1000));
+                })
+            }
+        }
+        graph.onmouseleave = () => { onwheel = () => { } }
+        var preventMouseEnter = false;
+        const newordering = $('[newordering]');
+        newordering.onclick = ({ target }) => {
+            target.insertAdjacentHTML('beforebegin', `<div>
+                    serie <div t="serie"></div>; position <div chooser>absolute</div> <span> from serie <div t="serie"></div></span>
+                </div>`)
+                var chooser = $('[chooser]')
+                chooser.onclick = openChooserChoices = () => {
+                $('[choice]')?.remove()
+                requestAnimationFrame(() => {
+                    var rect = $('[chooser]').getBoundingClientRect()
+                    $('body').insertAdjacentHTML('beforeend', `<div choice style="left:${rect.left}px;top:${rect.top + rect.height}px;">
+                        <div>absolute</div>
+                        <div>relative</div>
+                    </div>`);
+                    ([...$('[choice]').children]).forEach(c=>{
+                        c.onclick = ()=>{
+                            chooser.innerHTML = c.innerHTML;
+                            $('[choice]').remove()
+                        }
+                    })
+                })
+            }
+        }
+    </script>
+    <script>
+        const transform = (element, str, value) => {
+            var transform1 = element.style.transform;
+            if (transform1 == '')
+                element.style.transform = `${str}(${value})`;
+            else if (!transform1.includes(str))
+                element.style.transform += `${str}(${value})`;
+            else {
+                var trans_form = transform1.split(str + '(');
+                var t_r_a_n_s_f_o_r_m = trans_form[1].split(')');
+                t_r_a_n_s_f_o_r_m.splice(0, 1);
+                var result = trans_form[0] + `${str}(${value}`;
+                for (let t of t_r_a_n_s_f_o_r_m) {
+                    result += ')' + t;
+                }
+                element.style.transform = result;
+            }
+        }
     </script>
 </body>
 

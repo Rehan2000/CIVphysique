@@ -1,0 +1,25 @@
+projects: 
+
+{
+    [project.name]: {
+        name: '',                       // project.name
+      ? video: '',
+        frames: [...],                  // project.frames
+        series: {                       // project.series
+            [serie.name]: [             // serie.points
+                {x: №, y: №}
+                ...
+            ],
+            ...
+        },
+        graphs: {                       // project.series
+            [graph.name]: {
+                abscisse: [],           // serie
+                ordonnée: [],           // serie
+            },
+            ...
+        }
+    },
+    ...
+}
+
