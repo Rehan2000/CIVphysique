@@ -61,7 +61,7 @@
             background: #094771;
         }
 
-        [choice]>div{
+        [choice]>div {
             font-size: 50% !important;
         }
 
@@ -86,7 +86,8 @@
         }
 
         [uploading],
-        [prompt] {
+        [prompt],
+        [smallprompt] {
             position: absolute;
             top: 0;
             color: #fff;
@@ -94,6 +95,7 @@
             padding: 10px 20px;
             font: 400 13.3333px Arial;
             text-align: center;
+            z-index: 9;
         }
 
         [uploading]>div:not(:last-child),
@@ -147,6 +149,30 @@
             border-radius: 3px;
         }
 
+        [smallprompt] {
+            position: absolute;
+            height: min-content !important;
+            font-size: 50%;
+            padding: 5px 0;
+        }
+
+        [smallprompt]>input {
+            margin: 0 10px;
+            background: #eee;
+            border: none;
+            border-radius: 3px;
+            width: 20%;
+            font-size: 50%;
+        }
+
+        /* [smallprompt]>button {
+    margin: 0 10px;
+    background: #eee;
+    border: none;
+    border-radius: 3px;
+    width: 20%;
+} */
+
         .stop-access-box {
             height: 100%;
             width: 100%;
@@ -161,7 +187,7 @@
             position: absolute;
             top: 0;
             left: 0;
-            height: 200px;
+            min-height: 200px;
             display: flex;
             padding: 5px;
             background: #3c3c3c;
@@ -188,6 +214,7 @@
             font: 400 13.3333px Arial;
             cursor: default;
             min-width: max-content;
+            padding: 5px;
         }
 
         [frametools] [button]:hover {
@@ -196,6 +223,19 @@
 
         [frametools] [button][focused] {
             box-shadow: inset 0 0 3px 1px #505050, inset 0 0 5px 0px black;
+        }
+
+        [showSVG] {
+            width: 150px;
+            height: 100px;
+            background: #1e1e1e;
+        }
+
+        [showSVG]>g {
+            fill: none;
+            stroke-width: 1;
+            stroke: #f30;
+            stroke-dasharray: 2, 2;
         }
 
         [remover] {
@@ -235,6 +275,24 @@
             cursor: all-scroll;
         }
 
+        [extendLeft] {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 5px;
+            height: 100%;
+            cursor: w-resize;
+        }
+
+        [extendRight] {
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 5px;
+            height: 100%;
+            cursor: w-resize;
+        }
+
         .window {
             transform-origin: 0 0;
             animation: zoomin .2s forwards;
@@ -264,6 +322,10 @@
             stroke: red;
         }
 
+        [sample] {
+            stroke: #0f0;
+        }
+
         [identifier] {
             position: absolute;
             width: 100%;
@@ -273,6 +335,7 @@
             text-align: right;
             background: #ddd;
             font: 400 11.5px Arial;
+            box-shadow: inset 0 0 3px;
         }
 
         [content]>*:not(.window) {
@@ -349,28 +412,58 @@
             height: 50%;
         }
 
-        [orderings]>[all]>div {
+        [orderings]>[all]>div>div,
+        [newordering],
+        [time] {
             padding: 5px 10px;
             width: max-content;
             max-width: calc(100% - 30px);
             border-radius: 12px;
             border: 1px solid #eee;
-            font-size: 50%;
+            font-size: 75%;
         }
 
-        [orderings]>[all]>div div {
+        [orderings]>[all]>div>div:last-child {
+            border: none;
+        }
+
+        [orderings]>[all]>div>div:first-child div {
             display: inline-block;
             border-radius: 12px;
             background: #eee;
             color: #666;
         }
 
-        [orderings]>[all]>div div:not([full]) {
+        [orderings]>[all]>div>div:first-child div:not([full]) {
             padding: 1px 5px;
         }
 
-        [orderings]>[all]>div div[t]::before {
+        [orderings]>[all]>div>div:first-child div[t]::before {
             content: attr(t);
+        }
+
+        [orderings]>[all]>div>div:last-child>span,
+        [time]>span {
+            border-radius: 12px;
+            border: 1px solid black;
+            padding: 1px 5px;
+            background-image: repeating-linear-gradient(-45deg, #2d2d2d 0 1px, #000 1px 2px);
+            color: #fff;
+            font-weight: bold;
+            cursor: grab;
+        }
+
+        [orderings]>[all]>div[positionIs=absolute]>div:first-child>span {
+            display: none;
+        }
+
+        [orderings]>[all]>div[showResult='false']>div:last-child>span {
+            display: none;
+        }
+
+        [time] {
+            margin: 1px 0px;
+            border: none;
         }
 
         [chooser]::after {
@@ -383,10 +476,19 @@
             background: #1e1e1e;
             cursor: pointer;
             margin-top: 10px;
+            border: none;
         }
 
         [newordering]:hover {
             box-shadow: 0 0 3px #ccc;
+        }
+
+        ::-webkit-scrollbar {
+            display: none;
+        }
+
+        [framesEdit] {
+            cursor: crosshair;
         }
     </style>
     <script>
@@ -423,6 +525,7 @@
             <div orderings>
                 <div tag>orderings&nbsp;</div>
                 <div all>
+                    <div time><span>time</span></div>
                     <div newordering> + new</div>
                 </div>
             </div>
@@ -459,8 +562,33 @@
             file = $('[file]'),
             videoHEAD = $('[video]'),
             measure = $('[measure]'),
-            content = $('[content]');
-        var frameN = 20, frames = [],
+            content = $('[content]'),
+            newProject = () => {
+                return {
+                    name: (() => { var currents = retrieveCurrents(), str1 = 'nouveauProjet', r = 1; while (currents?.includes(str1)) { str1 = `nouveauProjet(${r++})`; } return str1 })(),
+                    frames: frames,
+                    video: {
+                        src: '',
+                        height: 0,
+                        width: 0,
+                    },
+                    orderings: [],
+                    series: [],
+                    graphData: {
+                        origin: { x: 0, y: 0 },
+                        sample: [[10, 'px'], 10]
+                    },
+                    graphs: {
+                        'nouveauGraph*': {
+                            abscisses: [], ordonnées: []
+                        }
+                    }
+                }
+            },
+            loadPage = () => {
+
+            };
+        var frameN = 15, frames = [],
             reset = () => { },
             upload = () => {
                 var input = document.createElement('input');
@@ -472,7 +600,7 @@
                     reader.onloadend = function () {
                         var dataJson = decodeURIComponent(escape(reader.result));
                         var dataObj = JSON.parse(dataJson);
-                        console.log(dataObj)
+                        openProject(dataObj)
                     }
                 }
                 input.click()
@@ -483,10 +611,7 @@
                 input.accept = 'video/*';
                 input.onchange = () => {
                     var file = input.files[0], n = file.name.split('.'), name = (() => { var s = ''; for (let i of n) s += n.indexOf(i) == n.length - 1 ? '' : (i + (n.indexOf(i) == 0 ? '' : '.')); return s })();
-                    console.log(name)
-                    console.log(project.name, project.name.includes('nouveauProjet'))
                     if (project.name.includes('nouveauProjet')) changeProjectName(name);
-                    console.log(project.name, project.name.includes('nouveauProjet'))
                     var video = document.createElement('video');
                     video.src = URL.createObjectURL(file);
                     // content.insertAdjacentElement('beforeend', video)
@@ -521,25 +646,7 @@
                 if (store) return JSON.parse(store);
                 return {}
             })(),
-            project = {
-                name: (() => { var currents = retrieveCurrents(), str1 = 'nouveauProjet', r = 1; while (currents?.includes(str1)) { str1 = `nouveauProjet(${r++})`; } return str1 })(),
-                frames: frames,
-                video: {
-                    src: '',
-                    height: 0,
-                    width: 0,
-                },
-                series: {},
-                graphData: {
-                    origin: { x: 0, y: 0 },
-                    sample: [[10, 'px'], 10]
-                },
-                graphs: {
-                    'nouveauGraph*': {
-                        abscisses: [], ordonnées: []
-                    }
-                }
-            },
+            project = newProject(),
             retrieve = s => {
                 return projects?.[s]
             };
@@ -548,7 +655,7 @@
         projects[project.name] = project;
         localSave();
         file.items = [
-            { name: 'New File', callback: 'alert(`help`)', retrieve: null },
+            { name: 'New File', callback: 'project = newProject(); loadPage()', retrieve: null },
             { name: 'Rename File', callback: `promptNewName()`, retrieve: null },
             { type: 'line' },
             { name: 'Open', callback: 'upload()', retrieve: null },
@@ -587,13 +694,12 @@
             }
         };
         openProject = proj => {
-            console.log(proj)
             var currents = retrieveCurrents();
             currents.splice(currents.indexOf(proj.name), 1)
             currents = [proj.name].concat(currents)
-            console.log(currents)
             project = proj;
             localStorage.setItem('currentsVideoFraming', currents.toString())
+            loadPage()
         };
         content.onclick = () => {
             $('[nav]')?.remove();
@@ -611,8 +717,6 @@
                 project.frames = frames;
                 openFramesWindow();
                 mover.kill();
-                $('[nav]')?.remove()
-                $('[ext]')?.remove()
             }
             var f = 0;
             videoEl.onseeked = () => {
@@ -621,11 +725,7 @@
                 frames.push(canvas.toDataURL('image/png'))
                 if (f < frameN) getNewFrame(); else done()
             };
-            (getNewFrame = () => {
-                videoEl.onloadedmetadata = () => { console.log('loadend') }
-                videoEl.currentTime = timePerFrame * f;
-                f++
-            })()
+            (getNewFrame = () => { videoEl.currentTime = timePerFrame * f; f++ })()
         };
         openSmallUploader = message => {
             content.insertAdjacentHTML('beforeend', `<div class="stop-access-box"><div uploading>${message} <div><div></div></div><div>0%</div></div></div>`)
@@ -643,6 +743,7 @@
             $('.stop-access-box')?.remove()
             content.insertAdjacentHTML('beforeend', `<div class="stop-access-box"><div prompt>${message}&nbsp;<input placeholder="${placeholder}" /><div forBUT><button>Ok</button><button>Cancel</button></div></div></div>`)
             var input = $('[prompt]').children[0], buttons = $('[forBUT]').children;
+            input.focus()
             var promise = new Promise((resolve, reject) => {
                 window.onkeydown = ({ key }) => {
                     if (key == 'Enter') resolve(input.value)
@@ -652,7 +753,6 @@
             });
             try {
                 var text = await promise;
-                console.log(text)
                 $('.stop-access-box').remove()
                 return text
             } catch {
@@ -663,7 +763,7 @@
         alert = async message => {
             $('.stop-access-box')?.remove()
             content.insertAdjacentHTML('beforeend', `<div class="stop-access-box"><div prompt>${message}<div forBUT><button>Ok</button></div></div></div>`)
-            var input = $('[prompt]').children[0], button = $('[forBUT]').children[0];
+            var button = $('[forBUT]').children[0];
             var promise = new Promise((resolve, reject) => {
                 window.onkeydown = ({ key }) => {
                     if (key == 'Enter') resolve()
@@ -673,23 +773,54 @@
             await promise;
             $('.stop-access-box').remove()
         }
+        smallPrompt = async ([...mespla], { x, y }) => {
+            $('[smallprompt]')?.remove()
+            content.insertAdjacentHTML('beforeend', `<div smallprompt style="top:${y}px;left:${y}px;">${(() => { var str = '', a = 0; for (let i of mespla) { a++; str += a % 2 == 1 ? i : `<input placeholder="${i}"/>` }; return str })()}<div remover></div></div>`)
+            var prompt = $('[smallprompt]'), inputs = (() => { var arr = []; for (let a = 0; a < (prompt.children.length - 1); a++) arr.push(prompt.children[a]); return arr })(), button = prompt.children[prompt.children.length - 1];
+            inputs[0].focus()
+            var promise = new Promise((resolve, reject) => {
+                window.onkeydown = ({ key }) => {
+                    if (key == 'Enter') {
+                        var arr = [], b = true, n = 0;
+                        while (n < inputs.length && b) {
+                            if (inputs[n].value.length === 0) (b = false, inputs[n].focus()); else arr.push(inputs[n].value)
+                            n++
+                        }
+                        if (b) resolve(arr)
+                    }
+                }
+                button.onclick = () => reject()
+            });
+            try {
+                var text = await promise;
+                prompt.remove()
+                return text
+            } catch {
+                prompt.remove()
+            };
+        }
         openFramesWindow = () => {
-            $('.window')?.remove()
-            console.log('window frames')
-            var coef = Math.min(150 / project.video.height, 300 / project.video.width)
-            project.video.currentHeight = project.video.height * coef;
-            project.video.currentWidth = project.video.width * coef
-            content.insertAdjacentHTML('beforeend', `<div class="window"><div>
-                        <div position> x: <span MpX></span><br>y: <span MpY></span></div>
-                        <svg framesEdit>
-                            <image href="${frames[0]}"/>
-                                <g origin>
-                                    <line x1=0 x2=${project.video.currentWidth} hor></line>
-                                    <line y1=0 y2=${project.video.currentHeight} ver></line>
-                                </g>
-                                <g sample></g></svg>
-                                <g changeframes></g></svg>
-                                <g placemarker></g></svg>
+            if (project.frames.length != 0) {
+                $('[nav]')?.remove()
+                $('[ext]')?.remove()
+                $('.window')?.remove()
+                var coef = Math.min(150 / project.video.height, 300 / project.video.width)
+                project.video.currentHeight = project.video.height * coef;
+                project.video.currentWidth = project.video.width * coef
+                content.insertAdjacentHTML('beforeend', `<div class="window">
+                        <div>
+                            <div position> x: <span MpX></span><br>y: <span MpY></span></div>
+                            <svg framesEdit>
+                                <image href="${project.frames[0]}"/>
+                                    <g origin>
+                                        <line x1=0 x2=${project.video.currentWidth} hor></line>
+                                        <line y1=0 y2=${project.video.currentHeight} ver></line>
+                                    </g>
+                                    <line sample></line>
+                                    <g changeframes></g>
+                                    <g placemarker></g>
+                                    <g points></g>
+                            </svg>
                         </div>
                         <div frametools>
                             <div button>Origin</div>
@@ -697,66 +828,131 @@
                             <div button>Change frames</div>
                             <div button>Place marker</div>
                             <div button>New Serie</div>
-                        </div><div enableMove></div><div remover></div></div>`)
-            var window = $('.window'), edit = $('[framesEdit]'), tools = $('[frametools]'), move = $('[enableMove]'), remove = $('[remover]'),
-                mpx = $('[MpX]'), mpy = $('[MpY]'), origin = $('g[origin]'), sample = $('g[sample]'), changeframes = $('g[changeframes]'), placemarker = $('g[placemarker]');
-            var graph = { origin: { x: 0, y: 0 } }
-            edit.image = edit.children[0];
-            edit.image.get = { get rect() { return edit.image.getBoundingClientRect() } }
-            edit.image.setAttribute('height', edit.style.height = project.video.currentHeight);
-            edit.image.setAttribute('width', edit.style.width = project.video.currentWidth);
-            edit.imageNum = 0;
-            edit.changeImage = (n = (edit.imageNum + (edit.imageNum < frames.length - 1 ? 1 : 0))) => {
-                edit.imageNum = n;
-                edit.image.setAttribute('href', frames[n])
-                return n
-            }
-            var children = tools.children,
-                buttons = {
-                    origin: children[0],
-                    sample: children[1],
-                    changeframes: children[2],
-                    placemarker: children[3]
-                };
-            origin.vertical = $('[ver]'); origin.horizontal = $('[hor]');
-            origin.goTo = (x, y) => {
-                origin.vertical.setAttribute('x1', x)
-                origin.vertical.setAttribute('x2', x)
-                origin.horizontal.setAttribute('y1', y)
-                origin.horizontal.setAttribute('y2', y)
-            }
-            buttons.origin.onclick = () => {
-                buttons.origin.focused = !buttons.origin.focused;
-                console.log(buttons.origin.focused)
-                if (buttons.origin.focused) buttons.origin.toggleAttribute('focused')
-            }
+                            <div button>Insert Serie</div>
+                            <svg showSVG>
+                                <image href="${project.frames[0]}" height="${project.video.currentHeight * 10}" width="${project.video.currentWidth * 10}"/>
+                                <g>
+                                    <line x1=75 x2=75 y1=0 y2=100 ></line>
+                                    <line x1=0 x2=150 y1=50 y2=50 ></line>
+                                    <circle cx=75 cy=50 r=25 />
+                                    <circle cx=75 cy=50 r=50 />
+                                </g>
+                            </svg>
+                        </div><div enableMove></div>
+                        <div extendRight></div><div extendLeft></div><div extendBottom></div>
+                        <div remover></div></div>`)
+                var window = $('.window'), edit = $('[framesEdit]'), tools = $('[frametools]'), move = $('[enableMove]'), remove = $('[remover]'),
+                    mpx = $('[MpX]'), mpy = $('[MpY]'), origin = $('g[origin]'), sample = $('[sample]'), changeframes = $('g[changeframes]'), placemarker = $('g[placemarker]'),
+                    biggerSVG = $('[showSVG]');
+                var graph = { origin: { x: 0, y: 0 } }, currentSerie;
+                edit.image = edit.children[0];
+                biggerSVG.image = biggerSVG.children[0];
+                edit.image.get = { get rect() { return edit.image.getBoundingClientRect() } }
+                edit.image.setAttribute('height', edit.style.height = project.video.currentHeight);
+                edit.image.setAttribute('width', edit.style.width = project.video.currentWidth);
+                edit.imageNum = 0;
+                edit.changeImage = (n = (edit.imageNum + (edit.imageNum < project.frames.length - 1 ? 1 : 0))) => {
+                    edit.imageNum = n;
+                    edit.image.setAttribute('href', project.frames[n])
+                    biggerSVG.image.setAttribute('href', project.frames[n])
+                    return n
+                }
+                var children = tools.children,
+                    buttons = {
+                        origin: children[0],
+                        sample: children[1],
+                        changeframes: children[2],
+                        placemarker: children[3],
+                        newSerie: children[4],
+                        insertSerie: children[5]
+                    };
+                origin.vertical = $('[ver]'); origin.horizontal = $('[hor]');
+                origin.goTo = (x, y) => {
+                    origin.vertical.setAttribute('x1', x)
+                    origin.vertical.setAttribute('x2', x)
+                    origin.horizontal.setAttribute('y1', y)
+                    origin.horizontal.setAttribute('y2', y)
+                }
+                buttons.origin.onclick = () => {
+                    buttons.origin.focused = !buttons.origin.focused;
+                    buttons.origin.toggleAttribute('focused')
+                }
+                buttons.sample.onclick = () => {
+                    buttons.sample.focused = !buttons.sample.focused;
+                    buttons.sample.toggleAttribute('focused')
+                    sample.point1 = sample.point2 = false;
+                }
+                buttons.newSerie.onclick = () => {
+                    buttons.newSerie.focused = !buttons.newSerie.focused;
+                    buttons.newSerie.toggleAttribute('focused')
+                    if (buttons.newSerie.focused)
+                        currentSerie = []
+                }
+                buttons.insertSerie.onclick = () => {
+                    buttons.newSerie.toggleAttribute('focused')
+                    buttons.newSerie.focused = false;
+                    console.log(project.series)
+                    project.series.push(currentSerie);
 
-            edit.onmousemove = ({ x, y }) => {
-                var rect = edit.image.get.rect;
-                mpx.innerHTML = Math.round(x - rect.left - project.video.currentWidth / 2) + 'px';
-                mpy.innerHTML = Math.round(project.video.currentHeight / 2 - y + rect.top) + 'px';
-                if (buttons.origin.focused) {
-                    origin.goTo(x - rect.left, y - rect.top)
                 }
 
-            }
-            edit.onclick = ({ x, y }) => {
-                buttons.origin.focused = false;
-                buttons.origin.removeAttribute('focused')
-                graph.origin = { x: x, y: y }
-            }
-            move.onmousedown = e => {
-                preventMouseEnter = true;
-                var x = e.x, y = e.y,
-                    pos = move.getBoundingClientRect();
-                document.onmousemove = e => {
-                    window.style.left = pos.left + e.x - x + 'px';
-                    window.style.top = pos.top + e.y - y + 'px';
+                edit.onmousemove = ({ x, y }) => {
+                    var rect = edit.image.get.rect;
+                    mpx.innerHTML = Math.round(x - rect.left - project.video.currentWidth / 2) + `px ${project.graphData.sample[0][1] === 'px' ? '' : `(${autoseekMathRound((x - rect.left - project.video.currentWidth / 2) * project.graphData.sample[0][0] / project.graphData.sample[1])}${project.graphData.sample[0][1]})`}`;
+                    mpy.innerHTML = Math.round(project.video.currentHeight / 2 - y + rect.top) + `px ${project.graphData.sample[0][1] === 'px' ? '' : `(${autoseekMathRound((project.video.currentHeight / 2 - y + rect.top) * project.graphData.sample[0][0] / project.graphData.sample[1])}${project.graphData.sample[0][1]})`}`;
+                    if (buttons.origin.focused) {
+                        origin.goTo(x - rect.left, y - rect.top)
+                    }
+                    if (buttons.sample.focused && sample.point1) {
+                        sample.setAttribute('x2', x - rect.left)
+                        sample.setAttribute('y2', y - rect.top)
+                    }
+                    var rect2 = biggerSVG.getBoundingClientRect(), rect3 = biggerSVG.image.getBoundingClientRect();
+                    biggerSVG.image.setAttribute('x', -(x - rect.left) * rect3.width / rect.width + rect2.width / 2)
+                    biggerSVG.image.setAttribute('y', -(y - rect.top) * rect3.height / rect.height + rect2.height / 2)
                 }
-                document.onmouseup = () => { document.onmousemove = () => { }; preventMouseEnter = false; }
+                edit.onclick = ({ x, y }) => {
+                    var rect = edit.image.get.rect;
+                    if (buttons.origin.focused) {
+                        buttons.origin.focused = false;
+                        buttons.origin.removeAttribute('focused')
+                        graph.origin = { x: x - rect.left, y: y - rect.top }
+                    }
+                    if (buttons.sample.focused) {
+                        if (sample.point1) {
+                            sample.point2 = { x: x - rect.left, y: y - rect.top }
+                            sample.setAttribute('x2', x - rect.left)
+                            sample.setAttribute('y2', y - rect.top)
+                            promptNewSampleValue({ x: (sample.point1.x + sample.point2.x) / 2 + rect.left, y: (sample.point1.y + sample.point2.y) / 2 + rect.top }, Math.hypot(sample.point1.x - sample.point2.x, sample.point1.y - sample.point2.y))
+                            buttons.sample.focused = false;
+                            buttons.sample.removeAttribute('focused')
+                        } else {
+                            sample.point1 = { x: x - rect.left, y: y - rect.top }
+                            sample.setAttribute('x1', x - rect.left)
+                            sample.setAttribute('y1', y - rect.top)
+                            sample.setAttribute('x2', x - rect.left)
+                            sample.setAttribute('y2', y - rect.top)
+                        }
+                    }
+                    if (buttons.newSerie.focused) {
+                        edit.changeImage()
+                    }
+                }
+                move.onmousedown = e => {
+                    preventMouseEnter = true;
+                    var x = e.x, y = e.y,
+                        pos = move.getBoundingClientRect();
+                    document.onmousemove = e => {
+                        window.style.left = pos.left + e.x - x + 'px';
+                        window.style.top = pos.top + e.y - y + 'px';
+                    }
+                    document.onmouseup = () => { document.onmousemove = () => { }; preventMouseEnter = false; }
+                }
+                remove.onclick = () => { window.remove() }
+                return edit;
+            } else {
+                alert(`Your document contains no frames`)
             }
-            remove.onclick = () => { window.remove() }
-            return edit;
         }
         changeProjectName = newName => {
             var currents = retrieveCurrents(), name = (() => { var str1 = newName, r = 1; while (currents?.includes(str1)) { str1 = newName + `(${r++})`; } return str1 })()
@@ -770,6 +966,10 @@
         }
         promptNewName = async () => {
             changeProjectName((await prompt('set File Name:', 'name')) ?? project.name)
+        }
+        promptNewSampleValue = async (p, v) => {
+            var arr = await smallPrompt(['Distance:', 'valeur', 'en', 'unité de mesure'], p)
+            project.graphData.sample = [[Number(arr[0]), arr[1]], v];
         }
         changeNumberOfFrames = async () => {
             frameN = Number(await prompt('set frameN to integer:', 'integer'))
@@ -785,7 +985,6 @@
         graph.onmousedown = () => {
             if (!preventMouseEnter) {
                 document.onmousemove = ({ movementX, movementY }) => {
-
                     transform(g, 'translate', `${graph.translation.x += movementX * 573 / 854.5}px, ${graph.translation.y += movementY * 573 / 854.5}px`);
                 }
                 document.onmouseup = () => { document.onmousemove = () => { } }
@@ -794,11 +993,8 @@
         graph.scale = 1;
         graph.onmouseenter = () => {
             onwheel = e => {
-                console.log(e);
                 ([...graphSVG.children]).forEach(c => {
                     c.style.transformOrigin = `${e.offsetX}px ${e.offsetY}px`;
-                    console.log(c, e)
-                    console.log(graph.scale, (1 + e.deltaY / 1000))
                     transform(c, 'scale', graph.scale *= (1 - e.deltaY / 1000));
                 })
             }
@@ -807,11 +1003,17 @@
         var preventMouseEnter = false;
         const newordering = $('[newordering]');
         newordering.onclick = ({ target }) => {
-            target.insertAdjacentHTML('beforebegin', `<div>
-                    serie <div t="serie"></div>; position <div chooser>absolute</div> <span> from serie <div t="serie"></div></span>
-                </div>`)
-                var chooser = $('[chooser]')
-                chooser.onclick = openChooserChoices = () => {
+            OrderingNumber = target.parentElement.children.length - 1;
+            target.insertAdjacentHTML('beforebegin', `<div showResult=false positionIs=absolute ><div>
+                    <div t="serie"></div>; position <div chooser newChooser>absolute</div> <span> from <div t="serie"></div></span>
+                </div>
+                <div>
+                    >>> <span>X{${OrderingNumber}}</span><span>Y{${OrderingNumber}}</span>
+                </div></div>`)
+            var chooser = $('[newChooser]')
+            chooser.removeAttribute('newChooser');
+            var wrap = chooser.parentElement.parentElement;
+            chooser.onclick = openChooserChoices = () => {
                 $('[choice]')?.remove()
                 requestAnimationFrame(() => {
                     var rect = $('[chooser]').getBoundingClientRect()
@@ -819,14 +1021,18 @@
                         <div>absolute</div>
                         <div>relative</div>
                     </div>`);
-                    ([...$('[choice]').children]).forEach(c=>{
-                        c.onclick = ()=>{
-                            chooser.innerHTML = c.innerHTML;
+                    ([...$('[choice]').children]).forEach(c => {
+                        c.onclick = () => {
+                            wrap.setAttribute('positionIs', chooser.innerHTML = c.innerHTML);
                             $('[choice]').remove()
                         }
                     })
                 })
             }
+        }
+        autoseekMathRound = n => {
+            var m = 3 - n.toString().split('.')[0].length;
+            return Math.round(n * 10 ** m) / 10 ** m
         }
     </script>
     <script>
