@@ -4,6 +4,8 @@
 <head>
     <meta charset="utf-8">
     <link rel="shortcut icon" href="image.ico" type="image/x-icon">
+    <link rel="apple-touch-icon" href="image.ico" id="icon1">
+    <link rel="icon" size="192x192" href="image.ico" id="icon2">
     <style>
         :root {
             --header-height: 0px;
@@ -400,10 +402,6 @@
             font-family: monospace;
         }
 
-        [inputs]>div>[all] {
-            padding: 0 0 0 25px;
-        }
-
         [orderings] {
             height: 50%;
             overflow: auto;
@@ -413,38 +411,39 @@
             height: 50%;
         }
 
-        [orderings]>[all]>div>div,
+        [ordering]>div,
         [newordering],
         [time] {
             padding: 5px 10px;
             width: max-content;
-            max-width: calc(100% - 30px);
+            max-width:calc(25vw - 60px);
             border-radius: 12px;
             border: 1px solid #eee;
             font-size: 75%;
         }
 
-        [orderings]>[all]>div>div:last-child {
+        [ordering]>div:last-child {
             border: none;
         }
 
-        [orderings]>[all]>div>div:first-child div {
+        [ordering]>div:first-child div {
             display: inline-block;
             border-radius: 12px;
             background: #eee;
             color: #666;
         }
 
-        [orderings]>[all]>div>div:first-child div:not([full]) {
+        [ordering]>div:first-child div:not([full]) {
             padding: 1px 5px;
         }
 
-        [orderings]>[all]>div>div:first-child div[t]::before {
+        [ordering]>div:first-child div[t]::before {
             content: attr(t);
         }
 
-        [orderings]>[all]>div>div:last-child>span,
-        [time]>span {
+        [ordering]>div:last-child>span,
+        [time]>span,
+        [serie] {
             border-radius: 12px;
             border: 1px solid black;
             padding: 1px 5px;
@@ -454,12 +453,47 @@
             cursor: grab;
         }
 
-        [orderings]>[all]>div[positionIs=absolute]>div:first-child>span {
+        [serie]{
+            background-image: repeating-linear-gradient(45deg, #2d2d2d 0 1px, #000 1px 2px);
+            font-size: 75%;
+            width: max-content;
+            max-width: calc(25vw - 60px);
+        }
+
+        [ordering][positionIs=absolute]>div:first-child>span {
             display: none;
         }
 
-        [orderings]>[all]>div[showResult='false']>div:last-child>span {
+        [ordering][showResult='false']>div:last-child>span {
             display: none;
+        }
+
+        [all]>table {
+            width: 100%;
+        }
+
+        [all]>table td:first-child {
+            width: 25px;
+            min-width: 25px;
+        }
+
+        .orderingSerieRemover>span {
+            display: flex !important;
+            justify-content: center;
+            align-items: center;
+            height: 15px;
+            width: 15px;
+            border-radius: 50%;
+            opacity: 0;
+            margin: auto;
+        }
+
+        .orderingSerieRemover>span:hover {
+            background: #1e1e1e;
+        }
+
+        tr:hover>.orderingSerieRemover>span {
+            opacity: 1;
         }
 
         [time] {
@@ -526,15 +560,27 @@
             <div orderings>
                 <div tag>orderings&nbsp;</div>
                 <div all>
-                    <div time><span>time</span></div>
-                    <div newordering> + new</div>
+                    <table>
+                        <tr>
+                            <td></td>
+                            <td>
+                                <div time><span>time</span></div>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td></td>
+                            <td>
+                                <div newordering> + new</div>
+                            </td>
+                        </tr>
+                    </table>
                 </div>
             </div>
             <div series>
                 <div tag>series&nbsp;</div>
-            </div>
-            <div all>
-
+                <div all>
+                    <table></table>
+                </div>
             </div>
         </div>
         <div graphing>
@@ -574,7 +620,7 @@
                         width: 0,
                     },
                     orderings: [],
-                    series: [],
+                    series: {},
                     graphData: {
                         origin: { x: 0, y: 0 },
                         sample: [[10, 'px'], 10]
@@ -831,7 +877,10 @@
                             <div button>New Serie</div>
                             <div button>Insert Serie</div>
                             <svg showSVG>
-                                <image href="${project.frames[0]}" height="${project.video.currentHeight * 10}" width="${project.video.currentWidth * 10}"/>
+                                <g>
+                                    <image href="${project.frames[0]}" height="${project.video.currentHeight * 10}" width="${project.video.currentWidth * 10}"/>
+                                    <g></g>
+                                </g>
                                 <g>
                                     <line x1=75 x2=75 y1=0 y2=100 ></line>
                                     <line x1=0 x2=150 y1=50 y2=50 ></line>
@@ -845,8 +894,9 @@
                 var window = $('.window'), edit = $('[framesEdit]'), tools = $('[frametools]'), move = $('[enableMove]'), remove = $('[remover]'),
                     mpx = $('[MpX]'), mpy = $('[MpY]'), origin = $('g[origin]'), sample = $('[sample]'), changeframes = $('g[changeframes]'), placemarker = $('g[placemarker]'),
                     biggerSVG = $('[showSVG]');
-                var graph = { origin: { x: 0, y: 0 } }, currentSerie;
+                var graph = { origin: { x: 0, y: 0 } }, currentSerie, old;
                 edit.image = edit.children[0];
+                edit.serie = $('g[points]');
                 biggerSVG.image = biggerSVG.children[0];
                 edit.image.get = { get rect() { return edit.image.getBoundingClientRect() } }
                 edit.image.setAttribute('height', edit.style.height = project.video.currentHeight);
@@ -857,6 +907,12 @@
                     edit.image.setAttribute('href', project.frames[n])
                     biggerSVG.image.setAttribute('href', project.frames[n])
                     return n
+                }
+                edit.newPoint = (x, y) => {
+                    edit.serie.insertAdjacentHTML('beforeend', `<path d="M ${x - 3},${y} h 6 M ${x},${y - 3} v 6" stroke="red" />`)
+                    var rect = edit.image.get.rect, rect2 = biggerSVG.getBoundingClientRect(), rect3 = biggerSVG.image.getBoundingClientRect();
+                    var coefX = rect3.width / rect.width, coefY = rect3.height / rect.height;
+                    biggerSVG.image.children[1].insertAdjacentHTML('beforeend', `<path d="M ${(x - 3) * coefX},${y * coefY} h ${6 * coefX} M ${x * coefX},${(y - 3) * coefY} v ${6 * coefY}" stroke="red" stroke-width=${(coefX + coefY) / 2} stroke-dasharray=none />`)
                 }
                 var children = tools.children,
                     buttons = {
@@ -888,56 +944,73 @@
                     buttons.newSerie.toggleAttribute('focused')
                     if (buttons.newSerie.focused)
                         currentSerie = []
+                    edit.serie.innerHTML = '';
+                    biggerSVG.image.children[1].innerHTML = '';
+                    old = -1;
+                    edit.changeImage(0)
                 }
                 buttons.insertSerie.onclick = () => {
                     buttons.newSerie.toggleAttribute('focused')
                     buttons.newSerie.focused = false;
-                    console.log(project.series)
-                    project.series.push(currentSerie);
-
+                    project.series[fetchNewSerieName()] = currentSerie;
+                    addSerie(currentSerie)
                 }
 
                 edit.onmousemove = ({ x, y }) => {
                     var rect = edit.image.get.rect;
-                    mpx.innerHTML = Math.round(x - rect.left - project.video.currentWidth / 2) + `px ${project.graphData.sample[0][1] === 'px' ? '' : `(${autoseekMathRound((x - rect.left - project.video.currentWidth / 2) * project.graphData.sample[0][0] / project.graphData.sample[1])}${project.graphData.sample[0][1]})`}`;
-                    mpy.innerHTML = Math.round(project.video.currentHeight / 2 - y + rect.top) + `px ${project.graphData.sample[0][1] === 'px' ? '' : `(${autoseekMathRound((project.video.currentHeight / 2 - y + rect.top) * project.graphData.sample[0][0] / project.graphData.sample[1])}${project.graphData.sample[0][1]})`}`;
+                    x -= rect.left;
+                    y -= rect.top;
+                    mpx.innerHTML = Math.round(x - project.video.currentWidth / 2) + `px ${project.graphData.sample[0][1] === 'px' ? '' : `(${autoseekMathRound((x - project.video.currentWidth / 2) * project.graphData.sample[0][0] / project.graphData.sample[1])}${project.graphData.sample[0][1]})`}`;
+                    mpy.innerHTML = Math.round(project.video.currentHeight / 2 - y) + `px ${project.graphData.sample[0][1] === 'px' ? '' : `(${autoseekMathRound((project.video.currentHeight / 2 - y) * project.graphData.sample[0][0] / project.graphData.sample[1])}${project.graphData.sample[0][1]})`}`;
                     if (buttons.origin.focused) {
-                        origin.goTo(x - rect.left, y - rect.top)
+                        origin.goTo(x, y)
                     }
                     if (buttons.sample.focused && sample.point1) {
-                        sample.setAttribute('x2', x - rect.left)
-                        sample.setAttribute('y2', y - rect.top)
+                        sample.setAttribute('x2', x)
+                        sample.setAttribute('y2', y)
                     }
                     var rect2 = biggerSVG.getBoundingClientRect(), rect3 = biggerSVG.image.getBoundingClientRect();
-                    biggerSVG.image.setAttribute('x', -(x - rect.left) * rect3.width / rect.width + rect2.width / 2)
-                    biggerSVG.image.setAttribute('y', -(y - rect.top) * rect3.height / rect.height + rect2.height / 2)
+                    transform(biggerSVG.image, 'translate', `${-x * rect3.width / rect.width + rect2.width / 2}px,${-y * rect3.height / rect.height + rect2.height / 2}px`)
                 }
                 edit.onclick = ({ x, y }) => {
                     var rect = edit.image.get.rect;
+                    x -= rect.left;
+                    y -= rect.top;
                     if (buttons.origin.focused) {
                         buttons.origin.focused = false;
                         buttons.origin.removeAttribute('focused')
-                        graph.origin = { x: x - rect.left, y: y - rect.top }
+                        graph.origin = { x: x, y: y }
                     }
                     if (buttons.sample.focused) {
                         if (sample.point1) {
-                            sample.point2 = { x: x - rect.left, y: y - rect.top }
-                            sample.setAttribute('x2', x - rect.left)
-                            sample.setAttribute('y2', y - rect.top)
-                            promptNewSampleValue({ x: (sample.point1.x + sample.point2.x) / 2 + rect.left, y: (sample.point1.y + sample.point2.y) / 2 + rect.top }, Math.hypot(sample.point1.x - sample.point2.x, sample.point1.y - sample.point2.y))
+                            sample.point2 = { x: x - rect.left, y: y }
+                            sample.setAttribute('x2', x)
+                            sample.setAttribute('y2', y)
+                            promptNewSampleValue({ x: (sample.point1.x + sample.point2.x) / 2, y: (sample.point1.y + sample.point2.y) / 2 }, Math.hypot(sample.point1.x - sample.point2.x, sample.point1.y - sample.point2.y))
                             buttons.sample.focused = false;
                             buttons.sample.removeAttribute('focused')
                         } else {
-                            sample.point1 = { x: x - rect.left, y: y - rect.top }
-                            sample.setAttribute('x1', x - rect.left)
-                            sample.setAttribute('y1', y - rect.top)
-                            sample.setAttribute('x2', x - rect.left)
-                            sample.setAttribute('y2', y - rect.top)
+                            sample.point1 = { x: x - rect.left, y: y }
+                            sample.setAttribute('x1', x)
+                            sample.setAttribute('y1', y)
+                            sample.setAttribute('x2', x)
+                            sample.setAttribute('y2', y)
                         }
                     }
                     if (buttons.newSerie.focused) {
-                        edit.changeImage()
+                        edit.newPoint(x, y)
+                        var rect = edit.image.get.rect;
+                        currentSerie.push({ x: x - rect.width / 2, y: y - rect.height / 2 })
+                        requestAnimationFrame(() => {
+                            var res = edit.changeImage()
+                            if (old === res) {
+                                buttons.newSerie.focused = false;
+                                buttons.newSerie.removeAttribute('focused')
+                            }
+                            old = res
+                        })
                     }
+                    console.log(currentSerie)
                 }
                 move.onmousedown = e => {
                     preventMouseEnter = true;
@@ -1005,15 +1078,25 @@
         const newordering = $('[newordering]');
         newordering.onclick = ({ target }) => {
             OrderingNumber = target.parentElement.children.length - 1;
-            target.insertAdjacentHTML('beforebegin', `<div showResult=false positionIs=absolute ><div>
-                    <div t="serie"></div>; position <div chooser newChooser>absolute</div> <span> from <div t="serie"></div></span>
-                </div>
-                <div>
-                    >>> <span>X{${OrderingNumber}}</span><span>Y{${OrderingNumber}}</span>
-                </div></div>`)
+            target.parentElement.parentElement.insertAdjacentHTML('beforebegin', `<tr>
+                    <td class=orderingSerieRemover nSbnT >
+                        <span>&times;</span>
+                    </td>
+                    <td>
+                        <div showResult=false positionIs=absolute ordering >
+                            <div>
+                                <div t="serie"></div>; position <div chooser newChooser>absolute</div> <span> from <div t="serie"></div></span>
+                            </div>
+                            <div>
+                                >>> <span>X{${OrderingNumber}}</span><span>Y{${OrderingNumber}}</span>
+                            </div>
+                        </div>
+                    </td>
+                </tr>`)
             var chooser = $('[newChooser]')
             chooser.removeAttribute('newChooser');
-            var wrap = chooser.parentElement.parentElement;
+            var wrap = chooser.parentElement.parentElement, removeButton = $('[nSbnT]').children[0];
+            $('[nSbnT]').removeAttribute('nSbnT');
             chooser.onclick = openChooserChoices = () => {
                 $('[choice]')?.remove()
                 requestAnimationFrame(() => {
@@ -1030,10 +1113,40 @@
                     })
                 })
             }
+            removeButton.onclick = () => {
+                removeButton.parentElement.parentElement.remove()
+            }
         }
         autoseekMathRound = n => {
             var m = 3 - n.toString().split('.')[0].length;
             return Math.round(n * 10 ** m) / 10 ** m
+        }
+        serieHasName = name => {
+            for (let n in project.series) if (name === n) return true;
+            return false
+        }
+        fetchNewSerieName = () => {
+            var num = 1;
+            while (serieHasName('serie' + num))
+                num++;
+            return 'serie' + num
+        }
+        const serieAll = $('[series]').children[1];
+        addSerie = (serie, name) => {
+
+            serieAll.children[0].insertAdjacentHTML('beforeend', `<tr>
+                    <td class=orderingSerieRemover nSbnT >
+                        <span>&times;</span>
+                    </td>
+                    <td>
+                        <div serie>${name}</div>
+                    </td>
+                </tr>`)
+            var removeButton = $('[nSbnT]').children[0];
+            $('[nSbnT]').removeAttribute('nSbnT');
+            removeButton.onclick = () => {
+                removeButton.parentElement.parentElement.remove()
+            }
         }
     </script>
     <script>
