@@ -416,7 +416,7 @@
         [time] {
             padding: 5px 10px;
             width: max-content;
-            max-width:calc(25vw - 60px);
+            max-width: calc(25vw - 60px);
             border-radius: 12px;
             border: 1px solid #eee;
             font-size: 75%;
@@ -437,10 +437,11 @@
             padding: 1px 5px;
         }
 
-        [ordering]>div:first-child div[t]::before {
+        [ordering]>div:first-child div[t]:not([full])::before {
             content: attr(t);
         }
 
+        [ordering]>div:first-child div[full]>div,
         [ordering]>div:last-child>span,
         [time]>span,
         [serie] {
@@ -453,10 +454,12 @@
             cursor: grab;
         }
 
-        [serie]{
+        [ordering]>div:first-child div[full]>div,
+        [serie] {
             background-image: repeating-linear-gradient(45deg, #2d2d2d 0 1px, #000 1px 2px);
             font-size: 75%;
             width: max-content;
+            height: min-content !important;
             max-width: calc(25vw - 60px);
         }
 
@@ -864,16 +867,12 @@
                                         <line y1=0 y2=${project.video.currentHeight} ver></line>
                                     </g>
                                     <line sample></line>
-                                    <g changeframes></g>
-                                    <g placemarker></g>
                                     <g points></g>
                             </svg>
                         </div>
                         <div frametools>
                             <div button>Origin</div>
                             <div button>Sample</div>
-                            <div button>Change frames</div>
-                            <div button>Place marker</div>
                             <div button>New Serie</div>
                             <div button>Insert Serie</div>
                             <svg showSVG>
@@ -892,8 +891,7 @@
                         <div extendRight></div><div extendLeft></div><div extendBottom></div>
                         <div remover></div></div>`)
                 var window = $('.window'), edit = $('[framesEdit]'), tools = $('[frametools]'), move = $('[enableMove]'), remove = $('[remover]'),
-                    mpx = $('[MpX]'), mpy = $('[MpY]'), origin = $('g[origin]'), sample = $('[sample]'), changeframes = $('g[changeframes]'), placemarker = $('g[placemarker]'),
-                    biggerSVG = $('[showSVG]');
+                    mpx = $('[MpX]'), mpy = $('[MpY]'), origin = $('g[origin]'), sample = $('[sample]'), biggerSVG = $('[showSVG]');
                 var graph = { origin: { x: 0, y: 0 } }, currentSerie, old;
                 edit.image = edit.children[0];
                 edit.serie = $('g[points]');
@@ -918,10 +916,8 @@
                     buttons = {
                         origin: children[0],
                         sample: children[1],
-                        changeframes: children[2],
-                        placemarker: children[3],
-                        newSerie: children[4],
-                        insertSerie: children[5]
+                        newSerie: children[2],
+                        insertSerie: children[3]
                     };
                 origin.vertical = $('[ver]'); origin.horizontal = $('[hor]');
                 origin.goTo = (x, y) => {
@@ -950,10 +946,11 @@
                     edit.changeImage(0)
                 }
                 buttons.insertSerie.onclick = () => {
-                    buttons.newSerie.toggleAttribute('focused')
+                    buttons.newSerie.removeAttribute('focused')
                     buttons.newSerie.focused = false;
-                    project.series[fetchNewSerieName()] = currentSerie;
-                    addSerie(currentSerie)
+                    var name = fetchNewSerieName();
+                    project.series[name] = currentSerie;
+                    addSerie(currentSerie, name)
                 }
 
                 edit.onmousemove = ({ x, y }) => {
@@ -1001,6 +998,7 @@
                         edit.newPoint(x, y)
                         var rect = edit.image.get.rect;
                         currentSerie.push({ x: x - rect.width / 2, y: y - rect.height / 2 })
+                        console.log(currentSerie)
                         requestAnimationFrame(() => {
                             var res = edit.changeImage()
                             if (old === res) {
@@ -1010,7 +1008,6 @@
                             old = res
                         })
                     }
-                    console.log(currentSerie)
                 }
                 move.onmousedown = e => {
                     preventMouseEnter = true;
@@ -1085,7 +1082,7 @@
                     <td>
                         <div showResult=false positionIs=absolute ordering >
                             <div>
-                                <div t="serie"></div>; position <div chooser newChooser>absolute</div> <span> from <div t="serie"></div></span>
+                                <div t="serie" serieDropper></div>; position <div chooser newChooser>absolute</div> <span> from <div t="serie" serieDropper></div></span>
                             </div>
                             <div>
                                 >>> <span>X{${OrderingNumber}}</span><span>Y{${OrderingNumber}}</span>
@@ -1133,7 +1130,6 @@
         }
         const serieAll = $('[series]').children[1];
         addSerie = (serie, name) => {
-
             serieAll.children[0].insertAdjacentHTML('beforeend', `<tr>
                     <td class=orderingSerieRemover nSbnT >
                         <span>&times;</span>
@@ -1142,10 +1138,103 @@
                         <div serie>${name}</div>
                     </td>
                 </tr>`)
-            var removeButton = $('[nSbnT]').children[0];
-            $('[nSbnT]').removeAttribute('nSbnT');
+            var nSbnT = $('[nSbnT]'), removeButton = nSbnT.children[0], serieMover = nSbnT.parentElement.children[1].children[0];
+            nSbnT.removeAttribute('nSbnT');
             removeButton.onclick = () => {
-                removeButton.parentElement.parentElement.remove()
+                removeButton.parentElement.parentElement.remove();
+            }
+            serieMover.onmousedown = ({ x, y, offsetX, offsetY }) => {
+                var iX = x, iY = y, oX = offsetX, oY = offsetY;
+                content.insertAdjacentHTML('beforeend', `<div serie nSO >${serieMover.innerHTML}</div>`)
+                nSO = $('[nSO]')
+                nSO.style.cursor = content.style.cursor = 'grabbing';
+                nSO.removeAttribute('nSO')
+                nSO.style.position = 'absolute';
+                nSO.style.left = iX - oX + 'px';
+                nSO.style.top = iY - oY + 'px';
+                requestAnimationFrame(() => {
+                    requestAnimationFrame(() => {
+                        document.onmousemove = ({ x, y }) => {
+                            nSO.style.left = x - oX + 'px';
+                            nSO.style.top = y - oY + 'px';
+                            for (let dropper of [...document.querySelectorAll('[serieDropper]')]) {
+                                var rect = dropper.getBoundingClientRect()
+                                if (x > rect.left && x < rect.left + rect.width && y > rect.top && y < rect.top + rect.height) {
+                                    dropper.style.boxShadow = 'inset 0 0 4px 1px #000'
+                                } else {
+                                    dropper.style.boxShadow = '';
+                                }
+                            }
+                        }
+                        document.onmouseup = ({ x, y }) => {
+                            document.onmousemove = () => { }
+                            nSO.style.cursor = 'grab';
+                            content.style.cursor = 'unset';
+                            nSO.remove()
+                            for (let dropper of [...document.querySelectorAll('[serieDropper]')]) {
+                                var rect = dropper.getBoundingClientRect()
+                                if (x > rect.left && x < rect.left + rect.width && y > rect.top && y < rect.top + rect.height) {
+                                    dropper.innerHTML = '';
+                                    dropper.insertAdjacentElement('beforeend', nSO)
+                                    dropper.setAttribute('full', true)
+                                    nSO.style.position = 'unset';
+                                    enableNSOMove(nSO)
+                                    dropper.style.boxShadow = ''
+                                } else {
+                                    dropper.style.boxShadow = '';
+                                }
+                            }
+                            document.onmouseup = ({ x, y }) => { }
+                        }
+                    })
+                })
+            }
+        }
+        enableNSOMove = nSO => {
+            nSO.onmousedown = ({ x, y, offsetX, offsetY }) => {
+                var iX = x, iY = y, oX = offsetX, oY = offsetY;
+                nSO.parentElement.removeAttribute('full')
+                content.insertAdjacentElement('beforeend', nSO);
+                nSO.style.cursor = content.style.cursor ='grabbing';
+                nSO.style.position = 'absolute';
+                nSO.style.left = iX - oX + 'px';
+                nSO.style.top = iY - oY + 'px';
+                requestAnimationFrame(() => {
+                    requestAnimationFrame(() => {
+                        document.onmousemove = ({ x, y }) => {
+                            nSO.style.left = x - oX + 'px';
+                            nSO.style.top = y - oY + 'px';
+                            for (let dropper of [...document.querySelectorAll('[serieDropper]')]) {
+                                var rect = dropper.getBoundingClientRect()
+                                if (x > rect.left && x < rect.left + rect.width && y > rect.top && y < rect.top + rect.height) {
+                                    dropper.style.boxShadow = 'inset 0 0 4px 1px #000'
+                                } else {
+                                    dropper.style.boxShadow = '';
+                                }
+                            }
+                        }
+                        document.onmouseup = ({ x, y }) => {
+                            document.onmousemove = () => { }
+                            nSO.style.cursor = 'grab';
+                            content.style.cursor = 'unset';
+                            nSO.remove()
+                            for (let dropper of [...document.querySelectorAll('[serieDropper]')]) {
+                                var rect = dropper.getBoundingClientRect()
+                                if (x > rect.left && x < rect.left + rect.width && y > rect.top && y < rect.top + rect.height) {
+                                    dropper.innerHTML = '';
+                                    dropper.insertAdjacentElement('beforeend', nSO)
+                                    dropper.setAttribute('full', true)
+                                    nSO.style.position = 'unset';
+                                    enableNSOMove(nSO)
+                                    dropper.style.boxShadow = ''
+                                } else {
+                                    dropper.style.boxShadow = '';
+                                }
+                            }
+                            document.onmouseup = ({ x, y }) => { }
+                        }
+                    })
+                })
             }
         }
     </script>
